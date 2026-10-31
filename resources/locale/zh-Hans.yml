@@ -96,6 +96,10 @@ local-custom-profile:
       fields: 个人资料
       gallery: 作品展柜
       posts: 精选帖子
+      recent-posts: 最近帖子
+      liked-posts: 高赞帖子
+      acgn-watching: 最近观看
+      acgn-ratings: 最近评分
     visibility:
       public: 所有人
       members: 登录会员
@@ -226,3 +230,56 @@ local-custom-profile:
       sort_showcases: 整理展柜顺序
       finish_sorting: 完成排序
       profile_visibility: 整页自定义内容可见范围
+    acgn:
+      unavailable: ACGN 数据源暂不可用或当前账号没有访问权限。
+      empty: 暂无可展示的记录。
+      limit: 显示条数
+      with_progress: 请求显示已授权的进度
+      progress_value: '进度 {value}'
+      editor_help: 来自主页所属用户的实时记录，最多6条。展柜范围与ACGN来源授权同时生效；保存或发布主页不会公开来源私有记录。编辑预览使用当前登录身份。
+      manage_sharing: 管理 ACGN 来源分享
+      sharing_help: 这些设置直接保存到本人的ACGN分享授权，与主页草稿独立。展柜范围和单条记录都允许时，其他人才可查看；评分和进度还需分别授权。管理员不能代改他人授权。
+      watching_scope: 最近观看的来源范围
+      ratings_scope: 最近评分的来源范围
+      save_scopes: 保存来源范围
+      record_sharing: 单条记录授权
+      record_help: 选择最近作品，或从作品库查到作品ID后读取。只显示本人的授权字段，不会复制短评到主页。
+      recent_subject: 最近的作品
+      choose_subject: 选择作品
+      subject_id: 作品 ID
+      invalid_subject: 请输入有效的正整数作品ID。
+      no_record: 该作品还没有你的个人记录，请先在作品页保存。
+      read_record: 读取本人记录授权
+      record_scope: 这条记录的可见范围
+      share_score: 允许展示这条记录的评分
+      share_progress: 允许展示这条记录的进度
+      save_record: 保存这条记录的授权
+      saved: ACGN 授权或活动已保存，后续读取立即生效。
+      activity_help: 旧记录不会自动变成最近活动。只有确实发生本次观看或评分时才点击下方按钮；它记录当前时间，不更改分数或伪造历史时间。
+      record_watching: 记录本次观看
+      record_ratings: 记录本次评分
+      types:
+        anime: 动画
+        manga: 漫画
+        game: 游戏
+        novel: 小说
+      status:
+        planned: 计划中
+        current: 进行中
+        completed: 已完成
+        on_hold: 暂停中
+        dropped: 已放弃
+    post_feed:
+      limit: 显示条数
+      scope: 内容范围
+      topic: 主题首帖
+      reply: '回复 #{number}'
+      empty: 暂无符合条件的帖子。
+      unavailable: 帖子数据暂不可用，高赞展柜需要启用点赞扩展。
+      recent_help: 按主页所属用户的发布时间倒序，时间相同按帖子ID倒序。仅展示未隐藏、非私有、通过审核且当前访问者可阅读的正文帖子，不保存快照。
+      liked_help: 展示主页所属用户至少有1个赞的帖子，按赞数、发布时间、帖子ID依次倒序。取消点赞和内容权限变更在下次读取时生效；不展示点赞者名单。
+      refresh: 刷新帖子预览
+      scopes:
+        all: 主题和回复
+        discussions: 仅主题首帖
+        replies: 仅回复

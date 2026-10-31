@@ -4,7 +4,6 @@ import UserPage from 'flarum/forum/components/UserPage';
 import LinkButton from 'flarum/common/components/LinkButton';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
-import LogInModal from 'flarum/forum/components/LogInModal';
 import ProfilePage from './ProfilePage';
 import ProfileView from './ProfileView';
 import EditorPage from './EditorPage';
@@ -14,7 +13,8 @@ import { t, request, errorText } from './api';
 function loadProfile(page) {
   const sequence = page.cpSequence = (page.cpSequence || 0) + 1;
   page.cpLoading = true;
-  Promise.all([request('GET', '/users/' + page.user.id()), request('GET', '/config')]).then(([data, config]) => {
+  const home = page instanceof ProfilePage;
+  Promise.all([request('GET', '/users/' + page.user.id() + (home ? '' : '?view=shell')), home ? request('GET', '/config') : Promise.resolve(null)]).then(([data, config]) => {
     if (sequence !== page.cpSequence) return;
     page.cpData = data; page.cpConfig = config; page.cpError = null;
   }).catch(error => { if (sequence === page.cpSequence) page.cpError = errorText(error); }).finally(() => {
@@ -39,7 +39,7 @@ app.initializers.add('local/custom-profile', () => {
     const editUrl = app.route('user.custom-profile.edit', { username: this.user.slug() });
     const actions = [
       (data?.canEdit || data?.canManage) && <LinkButton className="Button CustomProfile-editButton" href={editUrl} icon="fas fa-paint-brush">{t('forum.edit')}</LinkButton>,
-      (!app.session.user || String(app.session.user.id()) !== String(this.user.id())) && <Button className="Button" icon="fas fa-flag" onclick={() => app.session.user ? app.modal.show(ReportModal, { userId: this.user.id() }) : app.modal.show(LogInModal)}>{t('forum.report')}</Button>,
+      data?.canReport === true && <Button className="Button" icon="fas fa-flag" onclick={() => app.modal.show(ReportModal, { userId: this.user.id() })}>{t('forum.report')}</Button>,
     ];
     return <ProfileView user={this.user} profile={data?.profile} fields={this.cpConfig?.fields || []} loading={this.cpLoading} error={this.cpError}
       navItems={this.navItems().toArray()} actions={actions} isHome={this instanceof ProfilePage} activity={this instanceof ProfilePage ? null : this.content()} />;

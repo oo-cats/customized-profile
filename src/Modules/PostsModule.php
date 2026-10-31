@@ -22,9 +22,11 @@ final class PostsModule implements ModuleType
 
     public function present(array $data, User $viewer, int $ownerId, array $fields): array
     {
+        if (!$data['postIds']) return ['items' => []];
         // Flarum's visibility query also checks discussion, tags, approval and private-post extensions.
         $posts = $this->posts->queryVisibleTo($viewer)->whereIn('posts.id', $data['postIds'])
-            ->where('posts.type', 'comment')->with('discussion')->get()->keyBy('id');
+            ->where('posts.type', 'comment')->select(['posts.id', 'posts.type', 'posts.discussion_id', 'posts.number'])
+            ->with('discussion:id,title')->get()->keyBy('id');
         $items = [];
         foreach ($data['postIds'] as $id) {
             $post = $posts->get($id);

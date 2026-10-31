@@ -11,9 +11,9 @@ export default class EditorPage extends Page {
     super.oninit(vnode); this.bodyClass = 'App--custom-profile-editor'; this.loading = true; this.removed = false;
     const name = m.route.param('username');
     app.store.find('users', name, { bySlug: true }).then(async user => {
-      const data = await request('GET', '/users/' + user.id());
+      const data = await request('GET', '/users/' + user.id() + '/editor');
       if (this.removed) return;
-      this.user = user; this.canManage = data.canManage; app.setTitle(extractText(t('v2.customize')));
+      this.user = user; this.editorState = data; this.canManage = data.canManage; app.setTitle(extractText(t('v2.customize')));
     }).catch(error => { if (!this.removed) this.error = errorText(error); }).finally(() => {
       if (!this.removed) { this.loading = false; m.redraw(); }
     });
@@ -25,7 +25,7 @@ export default class EditorPage extends Page {
         {this.user && <LinkButton className="Button" href={app.route('user', { username: this.user.slug() })} icon="fas fa-arrow-left">{t('v2.back_profile')}</LinkButton>}
       </div>
       {this.loading ? <LoadingIndicator /> : this.error ? <div className="Alert Alert--error" role="alert">{this.error}</div> :
-        <ProfileEditor user={this.user} canManage={this.canManage} />}
+        <ProfileEditor user={this.user} canManage={this.canManage} initialState={this.editorState} />}
     </div>;
   }
 }

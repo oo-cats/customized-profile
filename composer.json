@@ -3,7 +3,7 @@
   "description": "Safe modular user profiles with controlled themes, showcases, private media and moderation",
   "type": "flarum-extension",
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "0.4.1",
   "require": {
     "php": "^8.3",
     "ext-gd": "*",
@@ -16,9 +16,17 @@
       "Local\\CustomProfile\\": "src/"
     }
   },
+  "suggest": {
+    "local/acgn-database": "Enables recent watching and recent ratings profile showcases through its public PHP API."
+  },
   "extra": {
     "flarum-extension": {
       "title": "自定义个人资料",
+      "optional-dependencies": [
+        "local/acgn-database",
+        "flarum/likes",
+        "flarum/approval"
+      ],
       "icon": {
         "name": "fas fa-id-card",
         "backgroundColor": "#326d91",

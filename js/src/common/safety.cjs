@@ -40,7 +40,7 @@ function moveModule(modules, index, direction) {
   return result;
 }
 function newModule(type, id) {
-  const defaults = { about: { text: '', format: 'bbcode', tags: [], links: [] }, fields: { values: [] }, gallery: { images: [] }, posts: { postIds: [] } };
+  const defaults = { about: { text: '', format: 'bbcode', tags: [], links: [] }, fields: { values: [] }, gallery: { images: [] }, posts: { postIds: [] }, 'acgn-watching': { limit: 6, withProgress: false }, 'acgn-ratings': { limit: 6, withProgress: false }, 'recent-posts': { limit: 6, scope: 'all' }, 'liked-posts': { limit: 6, scope: 'all' } };
   if (!Object.prototype.hasOwnProperty.call(defaults, type)) throw new Error('Unsupported module type');
   return { id, type, title: '', visibility: 'public', layout: layoutDefaults(), data: clone(defaults[type]) };
 }
@@ -48,4 +48,12 @@ function defaultProfile() {
   return upgradeProfile({ theme: 'steam', modules: [newModule('about', 'about')] });
 }
 
-module.exports = { THEMES, FRAMES, VISIBILITIES, safeLink, safeMediaUrl, safePostUrl, boundedPosition, clone, moveModule, newModule, defaultProfile };
+function safeAcgnUrl(value, forumUrl) {
+  if (typeof value !== 'string') return null;
+  try {
+    const base = new URL(forumUrl), url = new URL(value, base.href.replace(/\/$/, '') + '/');
+    const prefix = base.pathname.replace(/\/$/, '') + '/acgn/subjects/';
+    return url.origin === base.origin && url.pathname.startsWith(prefix) && /^[1-9][0-9]*$/.test(url.pathname.slice(prefix.length)) && !url.search && !url.hash && !url.username && !url.password ? url.href : null;
+  } catch (_) { return null; }
+}
+module.exports = { THEMES, FRAMES, VISIBILITIES, safeLink, safeMediaUrl, safePostUrl, safeAcgnUrl, boundedPosition, clone, moveModule, newModule, defaultProfile };

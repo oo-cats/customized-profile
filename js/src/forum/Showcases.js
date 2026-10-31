@@ -1,7 +1,8 @@
 import app from 'flarum/forum/app';
 import { t } from './api';
 import FormattedText from './FormattedText';
-import { safeLink, safeMediaUrl, safePostUrl } from '../common/safety.cjs';
+import humanTime from 'flarum/common/utils/humanTime';
+import { safeLink, safeMediaUrl, safePostUrl, safeAcgnUrl } from '../common/safety.cjs';
 import { normalizeLayout, normalizeAppearance } from '../common/appearance.cjs';
 
 const renderers = new Map();
@@ -34,6 +35,33 @@ registerModuleRenderer('posts', data => <ul className="CustomProfile-posts">{(da
   const url = safePostUrl(post.url, app.forum.attribute('baseUrl'));
   return url ? <li><a href={url}><i className="fas fa-comment-alt" aria-hidden="true" /> {post.title}</a></li> : null;
 })}</ul>);
+
+for (const type of ['recent-posts', 'liked-posts']) registerModuleRenderer(type, data => {
+  if (!(data.items || []).length) return <p className="CustomProfile-postFeedEmpty">{t(data.available === false ? 'post_feed.unavailable' : 'post_feed.empty')}</p>;
+  return <ol className="CustomProfile-postFeedList">{data.items.slice(0, 6).map(post => {
+    const url = safePostUrl(post.url, app.forum.attribute('baseUrl')); if (!url) return null;
+    const date = new Date(post.createdAt);
+    return <li key={post.id}>
+      <a href={url} className="CustomProfile-postFeedTitle">{post.title}</a>
+      {Number.isInteger(post.likesCount) && <strong className="CustomProfile-postFeedLikes"><i className="far fa-thumbs-up" aria-hidden="true" /> {post.likesCount}</strong>}
+      <span className="CustomProfile-postFeedMeta">{post.number === 1 ? t('post_feed.topic') : t('post_feed.reply', { number: post.number })}{!Number.isNaN(date.getTime()) && [' · ', <time dateTime={post.createdAt}>{humanTime(date)}</time>]}</span>
+    </li>;
+  })}</ol>;
+});
+
+for (const kind of ['watching', 'ratings']) registerModuleRenderer('acgn-' + kind, data => {
+  const items = (data.items || []).slice(0, 6);
+  if (!items.length) return <p className="CustomProfile-acgnEmpty">{t(data.available === false ? 'acgn.unavailable' : 'acgn.empty')}</p>;
+  return <ol className="CustomProfile-acgnList">{items.map(item => {
+    const url = safeAcgnUrl(item.url, app.forum.attribute('baseUrl')); if (!url) return null;
+    return <li key={item.subjectId}><div className="CustomProfile-acgnItem">
+      <span className="CustomProfile-acgnType">{t('acgn.types.' + item.type)}</span>
+      <a href={url} className="CustomProfile-acgnTitle">{item.title}</a>
+      {kind === 'ratings' && Number.isInteger(item.score) && <strong className="CustomProfile-acgnScore">{item.score}<small> / 10</small></strong>}
+      <span className="CustomProfile-acgnMeta">{t('acgn.status.' + item.status)}{Number.isInteger(item.progress) && [' · ', t('acgn.progress_value', { value: item.progress })]}</span>
+    </div></li>;
+  })}</ol>;
+});
 
 function view(vnode) {
   const { profile, region = 'main' } = vnode.attrs;

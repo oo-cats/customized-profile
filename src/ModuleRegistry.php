@@ -6,16 +6,20 @@ namespace Local\CustomProfile;
 
 use Flarum\Http\UrlGenerator;
 use Flarum\Post\PostRepository;
-use Local\CustomProfile\Modules\{ModuleType, AboutModule, FieldsModule, GalleryModule, PostsModule};
+use Flarum\Extension\ExtensionManager;
+use Local\CustomProfile\Modules\{ModuleType, AboutModule, FieldsModule, GalleryModule, PostsModule, AcgnModule, PostFeedModule};
+use Local\CustomProfile\Integrations\Acgn;
 
 final class ModuleRegistry
 {
     /** @var array<string,ModuleType> */
     private array $types = [];
 
-    public function __construct(PostRepository $posts, UrlGenerator $url)
+    public function __construct(PostRepository $posts, UrlGenerator $url, private ?Acgn $acgn = null, private ?ExtensionManager $extensions = null)
     {
         foreach ([new AboutModule(), new FieldsModule(), new GalleryModule(), new PostsModule($posts, $url)] as $type) $this->register($type);
+        foreach (['watching', 'ratings'] as $kind) $this->register(new AcgnModule($kind, $acgn));
+        foreach (['recent', 'liked'] as $kind) $this->register(new PostFeedModule($kind, $posts, $url, $extensions));
     }
 
     public function register(ModuleType $type): void
@@ -33,4 +37,6 @@ final class ModuleRegistry
 
     public function has(string $name): bool { return isset($this->types[$name]); }
     public function names(): array { return array_keys($this->types); }
+    public function acgnAvailable(): bool { return $this->acgn?->available() ?? false; }
+    public function likesAvailable(): bool { return $this->extensions?->isEnabled('flarum-likes') ?? false; }
 }

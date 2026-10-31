@@ -13,6 +13,7 @@ export default class ProfileAdminPage extends ExtensionPage {
     super.oninit(vnode); this.config = null; this.fields = []; this.reports = []; this.nextCursor = null;
     this.busy = false; this.error = null; this.notice = null; this.userId = ''; this.editor = null; this.events = [];
     this.action = 'freeze'; this.target = ''; this.reason = '';
+    this.inspectionSequence = 0;
     this.run(async () => { this.config = await api('GET', '/config'); this.fields = clone(this.config.fields); await this.loadReports(); });
   }
   async run(operation) {
@@ -28,8 +29,24 @@ export default class ProfileAdminPage extends ExtensionPage {
   }
   async loadUser(id = this.userId) {
     if (!/^[1-9][0-9]*$/.test(String(id))) { this.error = t('admin.user_id_required'); return; }
-    this.userId = String(id);
-    [this.editor, { events: this.events }] = await Promise.all([api('GET', '/users/' + id + '/editor'), api('GET', '/users/' + id + '/audit')]);
+    const target = String(id), sequence = ++this.inspectionSequence;
+    this.userId = target; this.editor = null; this.events = [];
+    const [editor, { events }] = await Promise.all([api('GET', '/users/' + target + '/editor'), api('GET', '/users/' + target + '/audit')]);
+    if (sequence !== this.inspectionSequence || this.userId !== target) return;
+    this.editor = editor; this.events = events;
+  }
+  changeUserId(value) {
+    this.inspectionSequence++; this.userId = value; this.editor = null; this.events = [];
+  }
+  async moderate() {
+    const inspected = this.editor;
+    if (!inspected || String(inspected.userId) !== this.userId) return;
+    const body = { version: inspected.version, action: this.action, reason: this.reason.trim() };
+    if (this.action.includes('module')) body.moduleId = this.target.trim();
+    if (this.action.includes('asset')) body.assetId = this.target.trim();
+    await api('POST', '/users/' + inspected.userId + '/moderate', body);
+    if (this.userId !== String(inspected.userId)) return;
+    await this.loadUser(inspected.userId); this.notice = t('admin.action_saved');
   }
   field(label, input) { return <label className="Form-group CustomProfile-field"><span>{label}</span>{input}</label>; }
   content() {
@@ -68,7 +85,7 @@ export default class ProfileAdminPage extends ExtensionPage {
         <div className="CustomProfile-inlineActions"><Button type="button" className="Button" disabled={this.busy} onclick={() => this.run(() => this.loadReports())}>{t('forum.first_page')}</Button>{this.nextCursor && <Button type="button" className="Button" disabled={this.busy} onclick={() => this.run(() => this.loadReports(this.nextCursor))}>{t('forum.next_page')}</Button>}</div>
       </section>
       <section><h2>{t('admin.moderation')}</h2>
-        <div className="CustomProfile-inlineActions"><label>{t('admin.user_id')}<input className="FormControl" inputmode="numeric" value={this.userId} oninput={event => { this.userId = event.target.value; this.editor = null; }} /></label><Button type="button" className="Button" disabled={this.busy} onclick={() => this.run(() => this.loadUser())}>{t('admin.inspect')}</Button></div>
+        <div className="CustomProfile-inlineActions"><label>{t('admin.user_id')}<input className="FormControl" inputmode="numeric" disabled={this.busy} value={this.userId} oninput={event => this.changeUserId(event.target.value)} /></label><Button type="button" className="Button" disabled={this.busy} onclick={() => this.run(() => this.loadUser())}>{t('admin.inspect')}</Button></div>
         {this.editor && <fieldset disabled={this.busy}>
           <p>{t(this.editor.frozen ? 'forum.frozen' : 'admin.not_frozen')} · {t('admin.version', { version: this.editor.version })}</p>
           <a href={app.forum.attribute('baseUrl') + '/u/' + this.editor.userId + '/profile'} target="_blank" rel="noopener noreferrer">{t('admin.open_profile')}</a>
@@ -79,12 +96,7 @@ export default class ProfileAdminPage extends ExtensionPage {
           <p className="helpText">{t('admin.target_help')}</p>
           <ul>{(this.editor.draft?.modules || []).map(module => <li><code>{module.id}</code> · {module.title || t('modules.' + module.type)}</li>)}</ul>
           {this.field(t('forum.reason'), <textarea className="FormControl" maxlength="500" value={this.reason} oninput={event => { this.reason = event.target.value; }} />)}
-          <Button type="button" className="Button Button--primary" disabled={!this.reason.trim()} onclick={() => this.run(async () => {
-            const body = { version: this.editor.version, action: this.action, reason: this.reason.trim() };
-            if (this.action.includes('module')) body.moduleId = this.target.trim();
-            if (this.action.includes('asset')) body.assetId = this.target.trim();
-            this.editor = await api('POST', '/users/' + this.userId + '/moderate', body); await this.loadUser(); this.notice = t('admin.action_saved');
-          })}>{t('admin.apply_action')}</Button>
+          <Button type="button" className="Button Button--primary" disabled={!this.reason.trim()} onclick={() => this.run(() => this.moderate())}>{t('admin.apply_action')}</Button>
           <h3>{t('admin.audit')}</h3>
           <ul className="CustomProfile-audit">{this.events.map(event => <li><span>{event.createdAt || event.created_at}</span> · {t('admin.actor', { id: event.actorId ?? event.actor_id ?? '—' })} · <strong>{event.action}</strong> · {event.reason || ''}</li>)}</ul>
         </fieldset>}

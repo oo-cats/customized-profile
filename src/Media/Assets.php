@@ -34,6 +34,8 @@ final class Assets
         try {
             $this->db->transaction(function () use ($actor, $id, $image): void {
                 $this->lockOwner((int) $actor->id);
+                $frozen = $this->db->table('cp_profiles')->where('user_id', $actor->id)->lockForUpdate()->value('frozen');
+                $actor->assertPermission(!$frozen || $actor->can('custom-profile.manage'));
                 $this->assertQuota((int) $actor->id, $image['bytes']);
                 $this->db->table('cp_assets')->insert([
                     'id' => $id,

@@ -9,6 +9,7 @@ foreach ([
     ['get', '/config', 'configuration.get'], ['patch', '/config', 'configuration.update'],
     ['get', '/users/{id}', 'users.show'], ['get', '/users/{id}/editor', 'users.editor'],
     ['put', '/users/{id}/draft', 'users.draft'], ['post', '/users/{id}/publish', 'users.publish'],
+    ['get', '/users/{id}/post-preview', 'users.post-preview'],
     ['post', '/users/{id}/rollback', 'users.rollback'], ['get', '/users/{id}/preview', 'users.preview'],
     ['post', '/users/{id}/moderate', 'users.moderate'], ['get', '/users/{id}/audit', 'users.audit'],
     ['post', '/users/{id}/report', 'users.report'], ['get', '/reports', 'reports.index'],

@@ -4,6 +4,9 @@ import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import extractText from 'flarum/common/utils/extractText';
 import ProfileView from './ProfileView';
+import AcgnSharingModal, { acgnRequest } from './AcgnSharingModal';
+import { previewData } from '../common/acgn.cjs';
+import { isPostShowcase, postPreviewRequest } from '../common/post-preview.cjs';
 import { request, endpoint, t, errorText } from './api';
 import { clone, defaultProfile, newModule, moveModule, safeMediaUrl } from '../common/safety.cjs';
 import { appearanceDefaults, layoutDefaults, upgradeProfile, paletteFor, COLOR_KEYS } from '../common/appearance.cjs';
@@ -19,12 +22,16 @@ export default class ProfileEditor extends Component {
     this.tab = 'general'; this.audience = 'self'; this.preview = null; this.dirty = false; this.postInputs = {}; this.tagInputs = {}; this.bioEditors = {};
     this.mobilePreview = false; this.draggedModule = null; this.reorderMode = false;
     this.newType = 'about'; this.moderationAction = 'freeze'; this.moderationReason = ''; this.moderationTarget = '';
+    this.acgnPreview = {};
+    this.postPreviews = new Map(); this.pendingPostPreviews = new Set(); this.removed = false;
     this.load();
   }
   onsubmit(event) { event.preventDefault(); }
+  onremove(vnode) { this.removed = true; clearTimeout(this.postPreviewTimer); super.onremove(vnode); }
   path(action) { return '/users/' + this.userId + action; }
   disabled() { return this.busy || !!(this.state?.frozen && !this.attrs.canManage); }
-  touch() { this.dirty = true; this.preview = null; this.audience = 'self'; this.notice = null; }
+  invalidatePreview() { this.preview = null; this.audience = 'self'; }
+  touch() { this.dirty = true; this.invalidatePreview(); this.notice = null; }
   async run(operation) {
     if (this.busy) return;
     this.busy = true; this.error = null; this.notice = null;
@@ -34,11 +41,14 @@ export default class ProfileEditor extends Component {
   }
   async load() {
     await this.run(async () => {
-      [this.state, this.config] = await Promise.all([request('GET', this.path('/editor')), request('GET', '/config')]);
+      [this.state, this.config] = await Promise.all([this.attrs.initialState || request('GET', this.path('/editor')), request('GET', '/config')]);
       this.profile = upgradeProfile(clone(this.state.draft || defaultProfile()));
       this.postInputs = {}; this.tagInputs = {};
       this.profile.modules.forEach(module => { if (!module.title) module.title = extractText(t('modules.' + module.type)); });
-      if (String(app.session.user?.id()) === String(this.userId)) await this.loadAssets();
+      await Promise.all([
+        String(app.session.user?.id()) === String(this.userId) ? this.loadAssets() : Promise.resolve(),
+        this.loadAcgnPreview(), this.loadPostPreviews(),
+      ]);
     });
   }
   async saveDraft() {
@@ -57,20 +67,58 @@ export default class ProfileEditor extends Component {
     await this.run(async () => {
       if (this.dirty) await this.saveDraft();
       this.state = await request('POST', this.path('/publish'), { version: this.state.version });
-      this.profile = upgradeProfile(clone(this.state.draft)); this.preview = null; this.notice = t('forum.published');
+      this.profile = upgradeProfile(clone(this.state.draft)); this.invalidatePreview(); this.notice = t('forum.published');
       if (this.attrs.onPublished) this.attrs.onPublished();
     });
   }
   async rollback() {
     await this.run(async () => {
       this.state = await request('POST', this.path('/rollback'), { version: this.state.version });
-      this.profile = upgradeProfile(clone(this.state.draft)); this.dirty = false; this.preview = null; this.postInputs = {}; this.tagInputs = {};
+      this.profile = upgradeProfile(clone(this.state.draft)); this.dirty = false; this.invalidatePreview(); this.postInputs = {}; this.tagInputs = {};
+      await this.loadPostPreviews();
       this.notice = t('forum.rolled_back'); if (this.attrs.onPublished) this.attrs.onPublished();
     });
   }
   async loadAssets(cursor) {
     const page = await request('GET', '/assets' + (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''));
     this.assets = page.assets || []; this.nextCursor = page.nextCursor;
+  }
+  async loadAcgnPreview() {
+    if (!this.config.integrations?.acgn) return;
+    const kinds = ['watching', 'ratings'].filter(kind => this.profile.modules.some(module => module.type === 'acgn-' + kind));
+    await Promise.all(kinds.map(async kind => {
+      try { this.acgnPreview[kind] = await acgnRequest('GET', '/users/' + this.userId + '/showcases/recent-' + kind + '?limit=6&with_progress=1'); }
+      catch (_) { this.acgnPreview[kind] = null; }
+    }));
+    m.redraw();
+  }
+  manageAcgnSharing() {
+    const items = Object.values(this.acgnPreview).flatMap(response => response?.items || []);
+    app.modal.show(AcgnSharingModal, { items, onChanged: () => { this.invalidatePreview(); this.loadAcgnPreview(); } });
+  }
+  async loadPostPreviews() {
+    await Promise.all(this.profile.modules.filter(module => isPostShowcase(module.type)).map(module => this.loadPostPreview(module)));
+  }
+  async loadPostPreview(module, refresh = false) {
+    if (refresh) this.invalidatePreview();
+    const descriptor = postPreviewRequest(module);
+    if (!descriptor) return;
+    const { key, query } = descriptor;
+    if (this.pendingPostPreviews.has(key) || (!refresh && this.postPreviews.has(key))) return;
+    this.pendingPostPreviews.add(key);
+    let data;
+    try { data = await request('GET', this.path('/post-preview?' + query)); }
+    catch (_) { data = { available: false, items: [] }; }
+    finally { this.pendingPostPreviews.delete(key); }
+    if (this.removed) return;
+    const active = new Set(this.profile.modules.map(item => postPreviewRequest(item)?.key).filter(Boolean));
+    for (const cached of this.postPreviews.keys()) if (!active.has(cached)) this.postPreviews.delete(cached);
+    if (active.has(key)) this.postPreviews.set(key, data);
+    m.redraw();
+  }
+  schedulePostPreview(module) {
+    clearTimeout(this.postPreviewTimer);
+    this.postPreviewTimer = setTimeout(() => { if (!this.removed) this.loadPostPreview(module); }, 250);
   }
   async upload(file) {
     if (!file) return;
@@ -95,6 +143,8 @@ export default class ProfileEditor extends Component {
     if (this.profile.modules.length >= (this.config.limits?.modules || 12)) return;
     const id = 'm' + Date.now().toString(36) + (++moduleSequence).toString(36);
     const module = newModule(this.newType, id); module.title = extractText(t('modules.' + this.newType)); this.profile.modules.push(module); this.touch();
+    if (['acgn-watching', 'acgn-ratings'].includes(module.type)) this.loadAcgnPreview();
+    if (isPostShowcase(module.type)) this.loadPostPreview(module);
   }
   field(label, input, help) {
     const name = extractText(label);
@@ -125,7 +175,7 @@ export default class ProfileEditor extends Component {
         <Button type="button" className="Button CustomProfile-sortToggle" onclick={() => { this.reorderMode = !this.reorderMode; }}>{t(this.reorderMode ? 'v2.finish_sorting' : 'v2.sort_showcases')}</Button>
         {this.profile.modules.map((module, index) => this.moduleEditor(module, index))}
         <div className="CustomProfile-inlineActions">
-          <label>{t('forum.add_module')}{choices(this.config.moduleTypes.filter(type => ['about', 'fields', 'gallery', 'posts'].includes(type)), this.newType, value => { this.newType = value; }, 'modules')}</label>
+          <label>{t('forum.add_module')}{choices(this.config.moduleTypes.filter(type => ['about', 'fields', 'gallery', 'posts', 'recent-posts'].includes(type) || (this.config.integrations?.likes && type === 'liked-posts') || (this.config.integrations?.acgn && ['acgn-watching', 'acgn-ratings'].includes(type))), this.newType, value => { this.newType = value; }, 'modules')}</label>
           <Button type="button" className="Button" disabled={this.profile.modules.length >= (this.config.limits?.modules || 12)} onclick={() => this.addModule()}>{t('forum.add')}</Button>
         </div>
         </div>}
@@ -157,7 +207,11 @@ export default class ProfileEditor extends Component {
     if (profile.background.assetId) profile.background.url = assets.get(profile.background.assetId)?.url;
     profile.modules = profile.modules.map(module => {
       if (module.type === 'gallery') module.data.images = module.data.images.map(image => ({ ...image, url: assets.get(image.assetId)?.url }));
-      if (module.type === 'posts') module.data.items = (this.state.published?.modules || []).find(item => item.id === module.id)?.data?.items || [];
+      if (['acgn-watching', 'acgn-ratings'].includes(module.type)) module.data = previewData(this.acgnPreview[module.type.slice(5)], module.type.slice(5), module.data, app.forum.attribute('baseUrl'));
+      if (isPostShowcase(module.type)) {
+        const descriptor = postPreviewRequest(module), feed = descriptor && this.postPreviews.get(descriptor.key);
+        module.data = { ...module.data, available: feed?.available ?? true, items: (feed?.items || []).slice(0, descriptor?.limit || 6) };
+      }
       return module;
     });
     return profile;
@@ -241,7 +295,20 @@ export default class ProfileEditor extends Component {
       {module.type === 'about' && this.aboutEditor(module)}
       {module.type === 'fields' && this.fieldsEditor(module)}
       {module.type === 'gallery' && this.galleryEditor(module)}
-      {module.type === 'posts' && this.field(t('forum.post_ids'), <input className="FormControl" value={this.postInputs[module.id] ?? module.data.postIds.join(', ')} oninput={event => { this.postInputs[module.id] = event.target.value; module.data.postIds = event.target.value.split(/[,，\s]+/).filter(Boolean).map(Number); this.touch(); }} />, t('forum.post_ids_help'))}
+      {module.type === 'posts' && this.field(t('forum.post_ids'), <input className="FormControl" value={this.postInputs[module.id] ?? module.data.postIds.join(', ')} oninput={event => { this.postInputs[module.id] = event.target.value; module.data.postIds = event.target.value.split(/[,，\s]+/).filter(Boolean).map(Number); this.touch(); this.schedulePostPreview(module); }} />, t('forum.post_ids_help'))}
+      {['recent-posts', 'liked-posts'].includes(module.type) && <div>
+        {this.field(t('post_feed.limit'), <select className="FormControl" value={module.data.limit} onchange={event => { module.data.limit = Number(event.target.value); this.touch(); }}>{[1, 2, 3, 4, 5, 6].map(value => <option value={value}>{value}</option>)}</select>)}
+        {this.field(t('post_feed.scope'), choices(['all', 'discussions', 'replies'], module.data.scope, value => { module.data.scope = value; this.touch(); this.loadPostPreview(module); }, 'post_feed.scopes'))}
+        <p className="helpText">{t('post_feed.' + (module.type === 'recent-posts' ? 'recent_help' : 'liked_help'))}</p>
+      </div>}
+      {['acgn-watching', 'acgn-ratings'].includes(module.type) && <div>
+        {this.field(t('acgn.limit'), <select className="FormControl" value={module.data.limit} onchange={event => { module.data.limit = Number(event.target.value); this.touch(); }}>{[1, 2, 3, 4, 5, 6].map(value => <option value={value}>{value}</option>)}</select>)}
+        <label className="CustomProfile-check"><input type="checkbox" checked={module.data.withProgress} onchange={event => { module.data.withProgress = event.target.checked; this.touch(); }} /> {t('acgn.with_progress')}</label>
+        <p className="helpText">{t('acgn.editor_help')}</p>
+        {!this.config.integrations?.acgn && <p className="Alert Alert--warning">{t('acgn.unavailable')}</p>}
+        {this.config.integrations?.acgn && String(app.session.user?.id()) === String(this.userId) && <Button type="button" className="Button" onclick={() => this.manageAcgnSharing()}>{t('acgn.manage_sharing')}</Button>}
+      </div>}
+      {isPostShowcase(module.type) && <Button type="button" className="Button" onclick={() => this.loadPostPreview(module, true)}>{t('post_feed.refresh')}</Button>}
       </div>}
     </section>;
   }

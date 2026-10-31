@@ -11,6 +11,8 @@ use Flarum\User\UserRepository;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Contracts\Events\Dispatcher;
+use Local\CustomProfile\Event\ProfilePublished;
 
 /** Profile lifecycle and the shared permission boundary for JSON and media responses. */
 final class Profiles
@@ -22,28 +24,31 @@ final class Profiles
         private ModuleRegistry $modules,
         private UserRepository $users,
         private UrlGenerator $url,
-        private RequestBudget $budget
+        private RequestBudget $budget,
+        private Dispatcher $events
     ) {
     }
 
     public function editor(User $actor, int $userId): array
     {
         $this->assertEditor($actor, $userId);
-        return $this->editorState($userId, $this->row($userId));
+        return $this->editorState($userId, $this->row($userId)) + ['canManage' => $this->canManage($actor)];
     }
 
-    public function view(User $actor, int $userId): array
+    public function view(User $actor, int $userId, string $mode = 'full'): array
     {
+        Input::choice($mode, 'view', ['full', 'shell']);
         $actor->assertCan('viewForum');
         $this->users->findOrFail($userId, $actor);
-        $row = $this->row($userId);
+        $row = $this->row($userId, ['published', 'frozen', 'hidden_modules']);
         $manage = $this->canManage($actor);
         return [
             'userId' => $userId,
             'profile' => $row && !$row->frozen && $row->published !== null
-                ? $this->present($this->decode($row->published), $actor, $userId, $this->decode($row->hidden_modules)) : null,
+                ? $this->present($this->decode($row->published), $actor, $userId, $this->decode($row->hidden_modules), $mode === 'full') : null,
             'canEdit' => $manage || (!$actor->isGuest() && (int) $actor->id === $userId && $actor->is_email_confirmed && !($row->frozen ?? false)),
             'canManage' => $manage,
+            'canReport' => !$actor->isGuest() && (bool) $actor->is_email_confirmed && (int) $actor->id !== $userId,
         ];
     }
 
@@ -76,14 +81,15 @@ final class Profiles
 
     public function preview(User $actor, int $userId, string $audience): array
     {
-        $owner = $this->assertEditor($actor, $userId);
+        $this->assertEditor($actor, $userId);
         Input::choice($audience, 'audience', ['guest', 'members', 'self']);
         $viewer = match ($audience) {
             'guest' => new Guest(),
-            'self' => $owner,
+            // A profile moderator must not impersonate its owner in optional data providers.
+            'self' => $actor,
             'members' => $this->memberPreview(),
         };
-        $row = $this->row($userId);
+        $row = $this->row($userId, ['draft', 'frozen', 'hidden_modules']);
         $profile = $row ? $this->decode($row->draft) : Schema::defaults();
         return ['userId' => $userId,
             'profile' => $viewer->can('viewForum') && !($row->frozen ?? false)
@@ -100,7 +106,7 @@ final class Profiles
         $ownerId = (int) $asset->user_id;
         try { $this->users->findOrFail($ownerId, $actor); }
         catch (ModelNotFoundException) { return false; }
-        $row = $this->row($ownerId);
+        $row = $this->row($ownerId, ['published', 'frozen', 'hidden_modules']);
         if (!$row || $row->frozen || $row->published === null) return false;
         $profile = $this->decode($row->published);
         if (!Visibility::allows($profile['visibility'] ?? 'public', $actor, $ownerId)) return false;
@@ -119,6 +125,28 @@ final class Profiles
             if (in_array($id, $type->assetIds($presented), true)) return true;
         }
         return false;
+    }
+
+    /** Private editor preview for unsaved feed configuration, always as the actual actor. */
+    public function postPreview(User $actor, int $userId, array $params): array
+    {
+        $this->assertEditor($actor, $userId);
+        $kind = Input::choice($params['kind'] ?? null, 'kind', ['recent', 'liked', 'featured']);
+        if ($kind === 'featured') {
+            Input::keys($params, ['id', 'kind', 'postIds'], 'query');
+            $ids = Input::text($params['postIds'] ?? '', 'postIds', 65);
+            if ($ids !== '' && !preg_match('/^[1-9][0-9]{0,9}(,[1-9][0-9]{0,9}){0,5}$/D', $ids)) Input::fail('postIds', '帖子 ID 列表无效。');
+            $type = $this->modules->get('posts');
+            $config = $type->normalize(['postIds' => $ids === '' ? [] : array_map('intval', explode(',', $ids))], []);
+        } else {
+            Input::keys($params, ['id', 'kind', 'limit', 'scope'], 'query');
+            $limit = $params['limit'] ?? 6;
+            if (is_string($limit) && preg_match('/^[1-6]$/D', $limit)) $limit = (int) $limit;
+            $type = $this->modules->get($kind.'-posts');
+            $config = $type->normalize(['limit' => $limit, 'scope' => $params['scope'] ?? 'all'], []);
+        }
+        if ($this->row($userId, ['frozen'])?->frozen) return ['available' => false, 'items' => []];
+        return $type->present($config, $actor, $userId, []) + ['available' => true];
     }
 
     public function moderate(User $actor, int $userId, array $body): array
@@ -154,6 +182,7 @@ final class Profiles
         $actor->assertRegistered();
         $actor->assertCan('viewForum');
         $actor->assertPermission((bool) $actor->is_email_confirmed);
+        $actor->assertPermission((int) $actor->id !== $userId);
         $this->users->findOrFail($userId, $actor);
         Input::keys($body, ['reason']);
         $reason = Input::text($body['reason'] ?? null, 'reason', 500, true);
@@ -227,7 +256,11 @@ final class Profiles
             $hidden = array_values(array_intersect($this->decode($next->hidden_modules), $this->moduleIds($next)));
             $changes += ['version' => $version + 1, 'hidden_modules' => $this->encode($hidden), 'updated_at' => gmdate('Y-m-d H:i:s')];
             $this->db->table('cp_profiles')->where('user_id', $userId)->update($changes);
-            $this->writeAudit($userId, $actor, $action, $reason);
+            $auditId = $this->writeAudit($userId, $actor, $action, $reason);
+            if ($action === 'publish') {
+                // Enqueue downstream work on this transaction; listeners must not send external messages.
+                $this->events->dispatch(new ProfilePublished($userId, (int) $actor->id, $auditId));
+            }
         });
         return $this->editor($actor, $userId);
     }
@@ -248,12 +281,12 @@ final class Profiles
         return $profile;
     }
 
-    private function present(array $profile, User $viewer, int $userId, array $hidden): ?array
+    private function present(array $profile, User $viewer, int $userId, array $hidden, bool $withModules = true): ?array
     {
         $profile = Schema::upgrade($profile);
         if (!Visibility::allows($profile['visibility'], $viewer, $userId)) return null;
-        $fields = $this->configuration->get()['fields'];
-        $ids = $this->schema->assetIds($profile);
+        $fields = $withModules ? $this->configuration->get()['fields'] : [];
+        $ids = $withModules ? $this->schema->assetIds($profile) : array_filter([$profile['background']['assetId']]);
         $active = $ids ? array_fill_keys($this->db->table('cp_assets')->where('user_id', $userId)
             ->where('status', 'active')->whereIn('id', $ids)->pluck('id')->all(), true) : [];
         $identity = $profile['identity'];
@@ -267,10 +300,26 @@ final class Profiles
             $result['background'] = $background;
             if ($background['assetId'] !== null) $result['background']['url'] = $this->assetUrl($background['assetId']);
         }
-        foreach ($profile['modules'] as $module) {
-            if (in_array($module['id'], $hidden, true) || !$this->modules->has($module['type'])
-                || !Visibility::allows($module['visibility'], $viewer, $userId)) continue;
-            $data = $this->modules->get($module['type'])->present($module['data'], $viewer, $userId, $fields);
+        if (!$withModules) return $result;
+        $visible = array_filter($profile['modules'], fn (array $module): bool => !in_array($module['id'], $hidden, true)
+            && $this->modules->has($module['type']) && Visibility::allows($module['visibility'], $viewer, $userId));
+        $limits = [];
+        foreach ($visible as $module) {
+            $key = $this->liveSourceKey($module);
+            if ($key !== null) $limits[$key] = max($limits[$key] ?? 0, $module['data']['limit'] ?? 6);
+        }
+        // Local to this presentation and its actual viewer/owner; never persists in a singleton.
+        $sources = [];
+        foreach ($visible as $module) {
+            $type = $this->modules->get($module['type']);
+            $key = $this->liveSourceKey($module);
+            if ($key === null) {
+                $data = $type->present($module['data'], $viewer, $userId, $fields);
+            } else {
+                $data = $sources[$key] ??= $type->present(array_replace($module['data'], ['limit' => $limits[$key]]), $viewer, $userId, $fields);
+                $data['limit'] = $module['data']['limit'] ?? 6;
+                $data['items'] = array_slice($data['items'], 0, $data['limit']);
+            }
             if ($module['type'] === 'gallery') {
                 $images = [];
                 foreach ($data['images'] ?? [] as $image) {
@@ -284,6 +333,14 @@ final class Profiles
             $result['modules'][] = $module;
         }
         return $result;
+    }
+
+    private function liveSourceKey(array $module): ?string
+    {
+        if (!in_array($module['type'], ['recent-posts', 'liked-posts', 'acgn-watching', 'acgn-ratings'], true)) return null;
+        $config = $module['data'];
+        unset($config['limit']);
+        return $module['type'].':'.$this->encode($config);
     }
 
     private function assertEditor(User $actor, int $userId): User
@@ -311,9 +368,9 @@ final class Profiles
         if (!$this->db->table('users')->where('id', $userId)->lockForUpdate()->first(['id'])) throw new ModelNotFoundException();
     }
 
-    private function row(int $userId): ?object
+    private function row(int $userId, array $columns = ['*']): ?object
     {
-        return $this->db->table('cp_profiles')->where('user_id', $userId)->first();
+        return $this->db->table('cp_profiles')->where('user_id', $userId)->first($columns);
     }
 
     private function editorState(int $userId, ?object $row): array
@@ -349,9 +406,9 @@ final class Profiles
         return $this->url->to('api')->path('custom-profile/assets/'.$id.'/file');
     }
 
-    private function writeAudit(int $userId, User $actor, string $action, string $reason): void
+    private function writeAudit(int $userId, User $actor, string $action, string $reason): int
     {
-        $this->db->table('cp_audit')->insert(['user_id' => $userId, 'actor_id' => $actor->id,
+        return (int) $this->db->table('cp_audit')->insertGetId(['user_id' => $userId, 'actor_id' => $actor->id,
             'action' => $action, 'reason' => $reason, 'created_at' => gmdate('Y-m-d H:i:s')]);
     }
 

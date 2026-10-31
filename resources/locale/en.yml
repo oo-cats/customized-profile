@@ -96,6 +96,10 @@ local-custom-profile:
       fields: 'Profile details'
       gallery: 'Artwork showcase'
       posts: 'Featured posts'
+      recent-posts: Recent posts
+      liked-posts: Most liked posts
+      acgn-watching: 'Recently watched'
+      acgn-ratings: 'Recent ratings'
     visibility:
       public: Everyone
       members: 'Signed-in members'
@@ -226,3 +230,56 @@ local-custom-profile:
       sort_showcases: 'Arrange showcases'
       finish_sorting: 'Finish arranging'
       profile_visibility: 'Whole custom profile visibility'
+    acgn:
+      unavailable: The ACGN source is unavailable or access is not allowed for this viewer.
+      empty: No records to display.
+      limit: Item limit
+      with_progress: Request authorized progress
+      progress_value: 'Progress {value}'
+      editor_help: Live records from this profile owner, up to 6 items. Profile visibility and ACGN source authorization both apply. Publishing a profile does not share private source records. Live preview uses the signed-in viewer.
+      manage_sharing: Manage ACGN source sharing
+      sharing_help: These changes save directly to your ACGN sharing authorization, separately from the profile draft. Both the showcase and individual record must permit access. Scores and progress need separate consent. Moderators cannot change another user's authorization.
+      watching_scope: Watching source visibility
+      ratings_scope: Ratings source visibility
+      save_scopes: Save source visibility
+      record_sharing: Individual record sharing
+      record_help: Choose a recent subject or enter its catalog ID. Only your sharing fields are used; comments are never copied into the profile.
+      recent_subject: Recent subjects
+      choose_subject: Choose a subject
+      subject_id: Subject ID
+      invalid_subject: Enter a valid positive subject ID.
+      no_record: You have no record for this subject. Save one on its catalog page first.
+      read_record: Load my record sharing
+      record_scope: Record visibility
+      share_score: Share this record's score
+      share_progress: Share this record's progress
+      save_record: Save record sharing
+      saved: ACGN authorization or activity saved and effective on the next read.
+      activity_help: Old records do not automatically become recent activity. Use these buttons only for an actual viewing or rating now. They record the current time without changing a score or inventing history.
+      record_watching: Record viewing now
+      record_ratings: Record rating now
+      types:
+        anime: Anime
+        manga: Manga
+        game: Game
+        novel: Novel
+      status:
+        planned: Planned
+        current: In progress
+        completed: Completed
+        on_hold: On hold
+        dropped: Dropped
+    post_feed:
+      limit: Item limit
+      scope: Content scope
+      topic: Discussion starter
+      reply: 'Reply #{number}'
+      empty: No matching posts to display.
+      unavailable: Post data is unavailable. The liked feed requires the Likes extension.
+      recent_help: This profile owner's comment posts ordered by publication time, then post ID, descending. Hidden, private and unapproved content is excluded, and viewer visibility still applies. No content snapshot is stored.
+      liked_help: This profile owner's posts with at least one like, ordered by likes, publication time and post ID, descending. Unlikes and visibility changes apply on the next read. Liker identities are never returned.
+      refresh: Refresh post preview
+      scopes:
+        all: Topics and replies
+        discussions: Discussion starters only
+        replies: Replies only
