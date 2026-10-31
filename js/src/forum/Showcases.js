@@ -1,0 +1,56 @@
+import app from 'flarum/forum/app';
+import { t } from './api';
+import FormattedText from './FormattedText';
+import { safeLink, safeMediaUrl, safePostUrl } from '../common/safety.cjs';
+import { normalizeLayout, normalizeAppearance } from '../common/appearance.cjs';
+
+const renderers = new Map();
+export function registerModuleRenderer(type, renderer) {
+  if (!/^[a-z][a-z0-9_-]{0,31}$/.test(type) || typeof renderer !== 'function' || renderers.has(type)) throw new Error('Invalid or duplicate profile module renderer');
+  renderers.set(type, renderer);
+}
+const media = value => safeMediaUrl(value, app.forum.attribute('apiUrl'));
+registerModuleRenderer('about', data => [
+  <FormattedText text={data.text} format={data.format || 'plain'} />,
+  (data.tags || []).length > 0 && <div className="CustomProfile-tags">{data.tags.map(tag => <span>{tag}</span>)}</div>,
+  (data.links || []).length > 0 && <ul className="CustomProfile-links">{data.links.map(link => {
+    const url = safeLink(link.url);
+    return url ? <li><a href={url} rel="ugc nofollow noopener noreferrer" target="_blank">{link.label}<small className="CustomProfile-domain"> ↗ {new URL(url).hostname}</small></a></li> : null;
+  })}</ul>,
+]);
+registerModuleRenderer('fields', (data, context) => <dl className="CustomProfile-fields">{(data.values || []).map(field => {
+  const definition = (context.fields || []).find(item => item.key === field.key);
+  const url = (field.type || definition?.type) === 'url' ? safeLink(field.value) : null;
+  return <div><dt>{field.label || definition?.label || field.key}</dt><dd>{url ? <a href={url} rel="ugc nofollow noopener noreferrer" target="_blank">{new URL(url).hostname}</a> : field.value}</dd></div>;
+})}</dl>);
+registerModuleRenderer('gallery', (data, context) => {
+  const layout = context.layout;
+  return <div className={'CustomProfile-gallery CustomProfile-gallery-' + layout.gallery + ' CustomProfile-ratio-' + layout.ratio + ' CustomProfile-image-' + layout.imageFit + ' CustomProfile-columns-' + layout.columns}>{(data.images || []).map(image => {
+    const url = media(image.url);
+    return url ? <figure><img src={url} alt={image.caption || ''} loading="lazy" decoding="async" />{image.caption && <figcaption>{image.caption}</figcaption>}</figure> : null;
+  })}</div>;
+});
+registerModuleRenderer('posts', data => <ul className="CustomProfile-posts">{(data.items || []).map(post => {
+  const url = safePostUrl(post.url, app.forum.attribute('baseUrl'));
+  return url ? <li><a href={url}><i className="fas fa-comment-alt" aria-hidden="true" /> {post.title}</a></li> : null;
+})}</ul>);
+
+function view(vnode) {
+  const { profile, region = 'main' } = vnode.attrs;
+  const appearance = normalizeAppearance(profile.appearance || {});
+  const modules = (profile.modules || []).filter(module => {
+    const layout = normalizeLayout(module.layout || {});
+    return appearance.sidebar === 'none' ? region === 'main' : layout.region === region;
+  });
+  return <div className={'CustomProfile-showcases CustomProfile-showcases-' + region}>{modules.map(module => {
+    const renderer = renderers.get(module.type); if (!renderer) return null;
+    const layout = normalizeLayout(module.layout || {});
+    const header = layout.header === 'inherit' ? appearance.titleStyle : layout.header;
+    return <section key={module.id} data-module-id={module.id} className={'CustomProfile-module CustomProfile-module-' + layout.width + ' CustomProfile-align-' + layout.align + ' CustomProfile-title-' + header}>
+      {header !== 'hidden' && <h2 className="CustomProfile-moduleTitle">{module.title || t('modules.' + module.type)}</h2>}
+      <div className="CustomProfile-moduleBody">{renderer(module.data || {}, { ...vnode.attrs, module, layout })}</div>
+    </section>;
+  })}</div>;
+}
+
+export default { view };

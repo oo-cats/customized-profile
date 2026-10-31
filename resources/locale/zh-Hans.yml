@@ -1,0 +1,228 @@
+local-custom-profile:
+  lib:
+    forum:
+      title: 个人主页
+      edit: 装扮与编辑主页
+      manage: 管理个人主页
+      empty: 尚未发布个人主页。
+      request_error: 操作未完成，请检查输入或刷新后重试。
+      report: 举报个人主页
+      report_sent: 举报已提交，管理员将审核处理。
+      reason: 原因
+      send_report: 提交举报
+      draft_saved: 草稿已保存，对外展示内容未变。
+      published: 个人主页已发布。
+      rolled_back: 已恢复上一版本。
+      frozen: 此主页的装扮已被冻结，请联系管理员。
+      tab_edit: 编辑内容
+      tab_assets: 图片素材
+      tab_preview: 身份预览
+      theme: 主题
+      frame: 头像框
+      background: 背景素材
+      background_visibility: 背景可见范围
+      background_position: 背景水平裁剪位置
+      no_image: 不使用图片
+      add_module: 新增展柜
+      add: 添加
+      preview_as: 预览身份
+      unsaved: 有未保存的修改
+      saved: 当前草稿已保存
+      save_draft: 保存草稿
+      publish: 发布主页
+      rollback: 恢复上一版
+      move_up: 上移展柜
+      move_down: 下移展柜
+      remove: 移除
+      module_title: 展柜标题
+      visibility: 可见范围
+      bio: 个人介绍
+      tags: 兴趣标签（逗号分隔）
+      link_label: 链接名称
+      link_url: 'HTTPS 链接'
+      add_link: 添加链接
+      post_ids: '精选帖子 ID'
+      post_ids_help: 用逗号分隔；只显示当前访问者有权阅读的帖子。
+      not_filled: 未填写
+      clear: 清空此字段
+      no_fields: 管理员尚未配置资料字段。
+      removed_field: '字段 {key} 已被管理员移除。请先备份所需内容，再清空此历史字段以继续保存。'
+      image: 图片素材
+      caption: 图片说明
+      add_image: 添加图片
+      owner_assets: 个人图片库由素材所有者管理。
+      upload: 上传静态图片
+      upload_help: '支持 JPEG、PNG、静态 WebP；服务器会检查格式、像素与配额，并生成去除元数据的展示版本。请保存草稿后预览。'
+      uploaded: 图片已上传，可在编辑内容中选择。
+      asset_blocked: 素材已被下架
+      delete_asset: 删除未引用素材
+      first_page: 返回首页
+      next_page: 下一页
+    admin:
+      manage_permission: 管理个人主页、资料字段与举报
+      field_definitions: 自定义资料字段
+      fields_help: 字段标识发布后应保持稳定。可见范围上限限制用户能选择的最宽访问范围；用户可进一步设为私密。
+      field_key: 字段标识（小写字母、数字、下划线）
+      field_label: 显示名称
+      field_type: 字段类型
+      max_length: 最大长度
+      max_visibility: 最宽可见范围
+      options: 可选值（每行一项）
+      add_field: 添加资料字段
+      save_fields: 保存字段配置
+      fields_saved: 字段配置已保存。
+      reports: 主页举报
+      no_reports: 暂无举报。
+      profile_user: '主页用户 #{id}'
+      reporter: '举报用户 #{id}'
+      actor: '操作者 #{id}'
+      inspect: 查看与处理
+      resolved: 已处理
+      resolve: 标记已处理
+      moderation: 主页审核
+      user_id: '用户 ID'
+      user_id_required: '请输入有效的用户 ID。'
+      not_frozen: 当前未冻结
+      version: '版本 {version}'
+      open_profile: 打开个人主页
+      action: 管理操作
+      target: '目标展柜 ID 或素材 ID'
+      target_help: '隐藏或恢复展柜时填写下方展柜 ID；下架或恢复素材时填写完整素材 ID。冻结、解冻、重置不需填写目标。'
+      apply_action: 执行管理操作
+      action_saved: 管理操作已执行并记录。
+      audit: 最近操作记录
+    modules:
+      about: 自我介绍
+      fields: 个人资料
+      gallery: 作品展柜
+      posts: 精选帖子
+    visibility:
+      public: 所有人
+      members: 登录会员
+      self: 仅自己
+    audience:
+      guest: 访客
+      members: 登录会员
+      self: 本人
+    themes:
+      default: 经典默认
+      ocean: 海岸
+      forest: 森林
+      amber: 琥珀
+      steam: 经典深蓝
+      midnight: 午夜
+      amethyst: 紫晶
+      rose: 玫瑰
+      paper: 素纸
+    frames:
+      none: 无边框
+      line: 简约边框
+      double: 双线边框
+      neon: 霓光
+      ornate: 复古饰边
+      pixel: 像素边框
+      gradient: 叠色边框
+    field_types:
+      text: 文字
+      url: 'HTTPS 链接'
+      select: 单项选择
+    actions:
+      freeze: 冻结装扮
+      unfreeze: 解除冻结
+      reset: 恢复默认主页
+      hide-module: 隐藏展柜
+      show-module: 恢复展柜
+      block-asset: 下架素材
+      unblock-asset: 恢复素材
+    v2:
+      profile_navigation: 个人资料导航
+      customize: 自定义个人资料
+      profile_studio: 个人资料工作室
+      back_profile: 返回个人资料
+      empty_profile: 这里是你的个人空间。添加展柜并发布，让大家认识你。
+      community_profile: 社区档案
+      discussions: 讨论
+      replies: 回复
+      joined: 加入社区
+      spoiler: 点击展开隐藏内容
+      section_general: 基本资料
+      section_appearance: 主题与排版
+      section_background: 个人资料背景
+      section_showcases: 特色展柜
+      section_assets: 图片素材库
+      section_privacy: 隐私设置
+      live_self_preview: '实时编辑预览 · 仅自己'
+      refresh_preview: 查看身份预览
+      return_edit: 返回编辑
+      view_preview: 查看整页预览
+      tagline: 个人签名
+      identity_alignment: 资料头部对齐
+      avatar_shape: 头像形状
+      show_stats: 显示社区档案与统计
+      color_canvas: 页面底色
+      color_header: 资料头部
+      color_panel: 展柜面板
+      color_titleBar: 展柜标题条
+      color_accent: 装饰强调色
+      reset_colors: 恢复主题配色
+      contrast_help: 文字颜色与最低不透明度自动保护可读性。装饰色不会改变官方身份标记。
+      page_width: 页面宽度
+      sidebar: 侧栏位置
+      title_style: 默认标题样式
+      panel_opacity: 面板不透明度
+      spacing: 展柜间距与留白
+      radius: 面板圆角
+      background_fit: 背景显示方式
+      background_attachment: 背景滚动方式
+      background_y: 背景垂直位置
+      background_overlay: 背景压暗遮罩
+      tagline_visibility: 个人签名可见范围
+      privacy_help: 每个展柜和资料字段可以单独设置可见范围。发布后生效；隐私收紧会同步阻断旧图片地址的访问。
+      region: 放置区域
+      module_width: 展柜宽度
+      module_header: 展柜标题样式
+      alignment: 内容对齐
+      text_format: 文字排版
+      format_help: '支持 [b]、[i]、[u]、[h1]、[quote]、[list][*]、[code]、[spoiler] 和 HTTPS 的 [url=…]。HTML 与图片外链会保留为文字。'
+      gallery_layout: 图片展柜版式
+      image_ratio: 图片比例
+      image_fit: 图片填充
+      columns: 网格列数
+      use_background: 用作个人资料背景
+      options:
+        left: '左侧 / 左对齐'
+        right: 右侧
+        center: 居中
+        none: 不显示侧栏
+        square: 正方形
+        rounded: 圆角
+        circle: 圆形
+        compact: '紧凑 · 960px'
+        standard: '标准 · 1120px'
+        wide: '宽版 · 1280px'
+        bar: 主题标题条
+        line: 强调色分隔线
+        plain: '简洁 / 纯文本'
+        hidden: 隐藏标题
+        inherit: 跟随整页设置
+        cover: 铺满并裁剪
+        contain: 完整显示
+        tile: 平铺
+        scroll: 随页面滚动
+        fixed: 固定背景
+        main: 主展柜区
+        sidebar: 资料侧栏
+        full: 整行宽度
+        half: 半行宽度
+        grid: 图片网格
+        featured: '大主图 + 配图'
+        artwork: '艺术长图 + 侧图'
+        strip: 横向画廊
+        auto: 原始比例
+        landscape: '横向 16:10'
+        portrait: '纵向 3:4'
+        bbcode: 'Steam 风格排版'
+      drag_showcase: 拖动调整展柜顺序
+      sort_showcases: 整理展柜顺序
+      finish_sorting: 完成排序
+      profile_visibility: 整页自定义内容可见范围

@@ -1,0 +1,228 @@
+local-custom-profile:
+  lib:
+    forum:
+      title: 'Personal profile'
+      edit: 'Customize profile'
+      manage: 'Moderate profile'
+      empty: 'No personal profile has been published.'
+      request_error: 'The operation failed. Check your input or refresh and try again.'
+      report: 'Report profile'
+      report_sent: 'Your report has been submitted for review.'
+      reason: Reason
+      send_report: 'Submit report'
+      draft_saved: 'Draft saved. The published profile has not changed.'
+      published: 'Profile published.'
+      rolled_back: 'Previous version restored.'
+      frozen: 'Profile customization is frozen. Please contact a moderator.'
+      tab_edit: Content
+      tab_assets: Images
+      tab_preview: 'Audience preview'
+      theme: Theme
+      frame: 'Avatar frame'
+      background: 'Background image'
+      background_visibility: 'Background visibility'
+      background_position: 'Horizontal crop position'
+      no_image: 'No image'
+      add_module: 'New showcase'
+      add: Add
+      preview_as: 'Preview as'
+      unsaved: 'Unsaved changes'
+      saved: 'Draft saved'
+      save_draft: 'Save draft'
+      publish: 'Publish profile'
+      rollback: 'Restore previous version'
+      move_up: 'Move showcase up'
+      move_down: 'Move showcase down'
+      remove: Remove
+      module_title: 'Showcase title'
+      visibility: Visibility
+      bio: 'About me'
+      tags: 'Interests (comma separated)'
+      link_label: 'Link label'
+      link_url: 'HTTPS link'
+      add_link: 'Add link'
+      post_ids: 'Featured post IDs'
+      post_ids_help: 'Separate IDs with commas. Visitors only see posts they can currently read.'
+      not_filled: 'Not provided'
+      clear: 'Clear field'
+      no_fields: 'No profile fields have been configured.'
+      removed_field: 'Field {key} was removed by an administrator. Copy any content you need, then clear this old field to continue saving.'
+      image: Image
+      caption: Caption
+      add_image: 'Add image'
+      owner_assets: 'Personal images are managed by their owner.'
+      upload: 'Upload a static image'
+      upload_help: 'JPEG, PNG and static WebP are supported. The server checks format, pixels and quota, then creates a metadata-free display copy. Save the draft before previewing.'
+      uploaded: 'Image uploaded. Select it in the content editor.'
+      asset_blocked: 'Image taken down'
+      delete_asset: 'Delete unused image'
+      first_page: 'First page'
+      next_page: 'Next page'
+    admin:
+      manage_permission: 'Manage profiles, field definitions and reports'
+      field_definitions: 'Custom profile fields'
+      fields_help: 'Keep published field keys stable. Maximum visibility limits the broadest audience users may choose; users may make a field more private.'
+      field_key: 'Field key (lowercase letters, digits and underscores)'
+      field_label: 'Display label'
+      field_type: 'Field type'
+      max_length: 'Maximum length'
+      max_visibility: 'Maximum visibility'
+      options: 'Options (one per line)'
+      add_field: 'Add field'
+      save_fields: 'Save field definitions'
+      fields_saved: 'Field definitions saved.'
+      reports: 'Profile reports'
+      no_reports: 'No reports.'
+      profile_user: 'Profile user #{id}'
+      reporter: 'Reporter #{id}'
+      actor: 'Actor #{id}'
+      inspect: 'Inspect and moderate'
+      resolved: Resolved
+      resolve: 'Mark resolved'
+      moderation: 'Profile moderation'
+      user_id: 'User ID'
+      user_id_required: 'Enter a valid user ID.'
+      not_frozen: 'Not frozen'
+      version: 'Version {version}'
+      open_profile: 'Open profile'
+      action: Action
+      target: 'Showcase ID or image ID'
+      target_help: 'Use a showcase ID below to hide or restore a module, or the full image ID to block or restore an image. Freeze, unfreeze and reset need no target.'
+      apply_action: 'Apply moderation action'
+      action_saved: 'Action applied and recorded.'
+      audit: 'Recent audit events'
+    modules:
+      about: 'About me'
+      fields: 'Profile details'
+      gallery: 'Artwork showcase'
+      posts: 'Featured posts'
+    visibility:
+      public: Everyone
+      members: 'Signed-in members'
+      self: 'Only me'
+    audience:
+      guest: Guest
+      members: 'Signed-in member'
+      self: Myself
+    themes:
+      default: 'Classic default'
+      ocean: Coast
+      forest: Forest
+      amber: Amber
+      steam: 'Classic blue'
+      midnight: Midnight
+      amethyst: Amethyst
+      rose: Rose
+      paper: Paper
+    frames:
+      none: 'No frame'
+      line: 'Simple frame'
+      double: 'Double frame'
+      neon: Neon
+      ornate: Ornate
+      pixel: Pixel
+      gradient: Layered
+    field_types:
+      text: Text
+      url: 'HTTPS link'
+      select: 'Single choice'
+    actions:
+      freeze: 'Freeze customization'
+      unfreeze: 'Unfreeze customization'
+      reset: 'Reset profile'
+      hide-module: 'Hide showcase'
+      show-module: 'Restore showcase'
+      block-asset: 'Take down image'
+      unblock-asset: 'Restore image'
+    v2:
+      profile_navigation: 'Profile navigation'
+      customize: 'Customize profile'
+      profile_studio: 'PROFILE STUDIO'
+      back_profile: 'Back to profile'
+      empty_profile: 'This personal space has no published showcases yet.'
+      community_profile: 'Community profile'
+      discussions: Discussions
+      replies: Replies
+      joined: Joined
+      spoiler: 'Reveal spoiler'
+      section_general: General
+      section_appearance: 'Theme & layout'
+      section_background: 'Profile background'
+      section_showcases: 'Featured showcases'
+      section_assets: 'Image library'
+      section_privacy: Privacy
+      live_self_preview: 'Live editing preview · yourself'
+      refresh_preview: 'Preview audience'
+      return_edit: 'Back to editing'
+      view_preview: 'View full preview'
+      tagline: 'Profile headline'
+      identity_alignment: 'Header alignment'
+      avatar_shape: 'Avatar shape'
+      show_stats: 'Show community profile and statistics'
+      color_canvas: Page
+      color_header: Header
+      color_panel: 'Showcase panels'
+      color_titleBar: 'Showcase title bars'
+      color_accent: Accent
+      reset_colors: 'Reset theme colors'
+      contrast_help: 'Text colors and minimum opacity protect readability. Accent colors do not alter official identity badges.'
+      page_width: 'Page width'
+      sidebar: 'Sidebar position'
+      title_style: 'Default title style'
+      panel_opacity: 'Panel opacity'
+      spacing: 'Showcase spacing'
+      radius: 'Corner radius'
+      background_fit: 'Background display'
+      background_attachment: 'Background scrolling'
+      background_y: 'Vertical position'
+      background_overlay: 'Background shade'
+      tagline_visibility: 'Headline visibility'
+      privacy_help: 'Set visibility per showcase and profile field. Publishing applies these choices and revokes old media access when privacy is tightened.'
+      region: Placement
+      module_width: 'Showcase width'
+      module_header: 'Title style'
+      alignment: 'Content alignment'
+      text_format: 'Text formatting'
+      format_help: 'Use [b], [i], [u], [h1], [quote], [list][*], [code], [spoiler] and HTTPS [url=…]. HTML and image embeds remain text.'
+      gallery_layout: 'Gallery layout'
+      image_ratio: 'Image aspect ratio'
+      image_fit: 'Image fit'
+      columns: 'Grid columns'
+      use_background: 'Use as profile background'
+      options:
+        left: Left
+        right: Right
+        center: Center
+        none: 'No sidebar'
+        square: Square
+        rounded: Rounded
+        circle: Circle
+        compact: 'Compact · 960px'
+        standard: 'Standard · 1120px'
+        wide: 'Wide · 1280px'
+        bar: 'Theme title bar'
+        line: 'Accent rule'
+        plain: Plain
+        hidden: 'Hide title'
+        inherit: 'Use page setting'
+        cover: 'Fill and crop'
+        contain: 'Fit entire image'
+        tile: Tile
+        scroll: Scroll
+        fixed: Fixed
+        main: 'Main column'
+        sidebar: Sidebar
+        full: 'Full row'
+        half: 'Half row'
+        grid: 'Image grid'
+        featured: 'Featured image'
+        artwork: 'Artwork showcase'
+        strip: 'Image strip'
+        auto: 'Original aspect'
+        landscape: 'Landscape 16:10'
+        portrait: 'Portrait 3:4'
+        bbcode: 'Steam-style formatting'
+      drag_showcase: 'Drag to reorder showcase'
+      sort_showcases: 'Arrange showcases'
+      finish_sorting: 'Finish arranging'
+      profile_visibility: 'Whole custom profile visibility'
