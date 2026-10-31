@@ -64,6 +64,12 @@ final class Input
         return $value;
     }
 
+    public static function uuid(mixed $value, string $key = 'achievementIds'): string
+    {
+        if (!is_string($value) || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di', $value)) self::fail($key, '成就标识无效。');
+        return strtolower($value);
+    }
+
     public static function url(mixed $value): string
     {
         $value = self::text($value, 'url', 2048, true);

@@ -92,6 +92,7 @@ local-custom-profile:
       action_saved: 'Action applied and recorded.'
       audit: 'Recent audit events'
     modules:
+      achievements: Achievement showcase
       about: 'About me'
       fields: 'Profile details'
       gallery: 'Artwork showcase'
@@ -269,6 +270,25 @@ local-custom-profile:
         completed: Completed
         on_hold: On hold
         dropped: Dropped
+    achievements:
+      earned_count: achievements earned
+      choose: Choose achievements
+      choose_help: Only currently held, readable achievements are listed. Select up to 12, then reorder them in the showcase settings.
+      editor_help: The total is read automatically. Display only the count or select up to 12 achievements. Names and ownership remain live and are not stored in the profile configuration.
+      selected_count: '{count} / 12 selected'
+      search: Search achievement names
+      search_button: Search
+      no_options: No matching earned achievements.
+      apply: Apply selection
+      refresh: Refresh achievement preview
+      loading: Loading achievements…
+      unavailable: Achievements are temporarily unavailable. Please refresh later.
+      unavailable_selection: Achievement currently unavailable
+      none_selected: No achievements selected for display.
+      selection_empty: The selected achievements are currently unavailable.
+      archived: Archived
+      move_up: Move achievement up
+      move_down: Move achievement down
     post_feed:
       limit: Item limit
       scope: Content scope

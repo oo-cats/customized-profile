@@ -309,11 +309,14 @@ final class Profiles
             if ($key !== null) $limits[$key] = max($limits[$key] ?? 0, $module['data']['limit'] ?? 6);
         }
         // Local to this presentation and its actual viewer/owner; never persists in a singleton.
-        $sources = [];
+        $sources = []; $achievementSources = [];
         foreach ($visible as $module) {
             $type = $this->modules->get($module['type']);
             $key = $this->liveSourceKey($module);
-            if ($key === null) {
+            if ($module['type'] === 'achievements') {
+                $selection = $this->encode($module['data']);
+                $data = $achievementSources[$selection] ??= $type->present($module['data'], $viewer, $userId, $fields);
+            } elseif ($key === null) {
                 $data = $type->present($module['data'], $viewer, $userId, $fields);
             } else {
                 $data = $sources[$key] ??= $type->present(array_replace($module['data'], ['limit' => $limits[$key]]), $viewer, $userId, $fields);

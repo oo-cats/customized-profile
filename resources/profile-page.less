@@ -183,6 +183,32 @@
   .CustomProfile-editorNav { grid-row: span 2; }
   .CustomProfile-livePreview { grid-column: 2; }
 }
+
+.CustomProfile-stage {
+  .CustomProfile-achievementTotal { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .CustomProfile-achievementTotal > i { color: var(--cp-accent); align-self: center; font-size: 24px; }
+  .CustomProfile-achievementTotal > strong { font-size: 36px; line-height: 1.2; }
+  .CustomProfile-achievementTotal > span { font-size: 13px; }
+  .CustomProfile-achievementCards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; gap: 12px; }
+  .CustomProfile-achievementCards > li { display: flex; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--cp-accent); }
+  .CustomProfile-achievementCards > li > i { color: var(--cp-accent); font-size: 22px; flex: none; margin-top: 2px; }
+  .CustomProfile-achievementCards > li > div { min-width: 0; overflow-wrap: anywhere; }
+  .CustomProfile-achievementCards p { margin: 6px 0; font-size: 13px; }
+  .CustomProfile-achievementCards time, .CustomProfile-achievementArchived { display: block; margin-top: 5px; font-size: 11px; }
+  .CustomProfile-module-half .CustomProfile-achievementCards, .CustomProfile-aside .CustomProfile-achievementCards { grid-template-columns: minmax(0, 1fr); }
+  &.CustomProfile-narrow .CustomProfile-achievementCards { grid-template-columns: minmax(0, 1fr); }
+}
+.CustomProfile-achievementSelected { padding: 0; list-style: none; margin: 14px 0; }
+.CustomProfile-achievementSelected > li { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; }
+.CustomProfile-achievementSelected > li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.CustomProfileAchievementSelectModal {
+  .CustomProfile-achievementOptions { list-style: none; padding: 0; margin: 15px 0; max-height: 420px; overflow-y: auto; }
+  .CustomProfile-achievementOptions li { border-bottom: 1px solid rgba(127, 127, 127, .2); padding: 10px 0; }
+  .CustomProfile-achievementOptions label { display: flex; gap: 12px; align-items: flex-start; margin: 0; }
+  .CustomProfile-achievementOptions input { flex: none; margin-top: 4px; }
+  .CustomProfile-achievementOptions label > span { min-width: 0; overflow-wrap: anywhere; }
+  .CustomProfile-achievementOptions small, .CustomProfile-achievementOptions .helpText { display: block; margin: 5px 0; }
+}
 @media (max-width: 767px) {
   .CustomProfile-editorPage { padding: 18px 12px; }
   .CustomProfile-editorWorkspace { display: block; }

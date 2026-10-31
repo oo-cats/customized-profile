@@ -36,6 +36,19 @@ registerModuleRenderer('posts', data => <ul className="CustomProfile-posts">{(da
   return url ? <li><a href={url}><i className="fas fa-comment-alt" aria-hidden="true" /> {post.title}</a></li> : null;
 })}</ul>);
 
+registerModuleRenderer('achievements', data => {
+  if (data.loading) return <p>{t('achievements.loading')}</p>;
+  if (!data.available || !Number.isSafeInteger(data.earnedCount) || data.earnedCount < 0) return <p className="CustomProfile-achievementUnavailable">{t('achievements.unavailable')}</p>;
+  return <div className="CustomProfile-achievements">
+    <div className="CustomProfile-achievementTotal"><i className="fas fa-trophy" aria-hidden="true" /><strong>{data.earnedCount.toLocaleString()}</strong><span>{t('achievements.earned_count')}</span></div>
+    {(data.items || []).length ? <ol className="CustomProfile-achievementCards">{data.items.slice(0, 12).map(item => <li key={item.id}>
+      <i className="fas fa-award" aria-hidden="true" /><div><strong>{item.name}</strong>{item.status === 'archived' && <small className="CustomProfile-achievementArchived">{t('achievements.archived')}</small>}
+        {item.description && <p>{item.description}</p>}
+        {item.earnedAt && !Number.isNaN(new Date(item.earnedAt).getTime()) && <time dateTime={item.earnedAt}>{humanTime(new Date(item.earnedAt))}</time>}
+      </div></li>)}</ol> : <p className="CustomProfile-achievementEmpty">{t(data.hasSelection ? 'achievements.selection_empty' : 'achievements.none_selected')}</p>}
+  </div>;
+});
+
 for (const type of ['recent-posts', 'liked-posts']) registerModuleRenderer(type, data => {
   if (!(data.items || []).length) return <p className="CustomProfile-postFeedEmpty">{t(data.available === false ? 'post_feed.unavailable' : 'post_feed.empty')}</p>;
   return <ol className="CustomProfile-postFeedList">{data.items.slice(0, 6).map(post => {

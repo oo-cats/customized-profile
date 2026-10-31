@@ -10,5 +10,6 @@ final class ProfileServiceProvider extends AbstractServiceProvider
     {
         $this->container->singleton(ModuleRegistry::class);
         $this->container->singleton(Integrations\Acgn::class);
+        $this->container->singleton(Integrations\Achievements::class);
     }
 }

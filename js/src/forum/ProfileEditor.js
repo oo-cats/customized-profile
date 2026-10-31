@@ -5,8 +5,11 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import extractText from 'flarum/common/utils/extractText';
 import ProfileView from './ProfileView';
 import AcgnSharingModal, { acgnRequest } from './AcgnSharingModal';
+import AchievementSelectModal from './AchievementSelectModal';
+import { achievementRequest } from './achievementApi';
 import { previewData } from '../common/acgn.cjs';
 import { isPostShowcase, postPreviewRequest } from '../common/post-preview.cjs';
+import { achievementIds, achievementQuery, parseAchievementShowcase, unavailableAchievements, projectAchievements } from '../common/achievements.cjs';
 import { request, endpoint, t, errorText } from './api';
 import { clone, defaultProfile, newModule, moveModule, safeMediaUrl } from '../common/safety.cjs';
 import { appearanceDefaults, layoutDefaults, upgradeProfile, paletteFor, COLOR_KEYS } from '../common/appearance.cjs';
@@ -24,6 +27,7 @@ export default class ProfileEditor extends Component {
     this.newType = 'about'; this.moderationAction = 'freeze'; this.moderationReason = ''; this.moderationTarget = '';
     this.acgnPreview = {};
     this.postPreviews = new Map(); this.pendingPostPreviews = new Set(); this.removed = false;
+    this.achievementPreviews = new Map(); this.pendingAchievementPreviews = new Set();
     this.load();
   }
   onsubmit(event) { event.preventDefault(); }
@@ -47,7 +51,7 @@ export default class ProfileEditor extends Component {
       this.profile.modules.forEach(module => { if (!module.title) module.title = extractText(t('modules.' + module.type)); });
       await Promise.all([
         String(app.session.user?.id()) === String(this.userId) ? this.loadAssets() : Promise.resolve(),
-        this.loadAcgnPreview(), this.loadPostPreviews(),
+        this.loadAcgnPreview(), this.loadPostPreviews(), this.loadAchievementPreviews(),
       ]);
     });
   }
@@ -75,7 +79,7 @@ export default class ProfileEditor extends Component {
     await this.run(async () => {
       this.state = await request('POST', this.path('/rollback'), { version: this.state.version });
       this.profile = upgradeProfile(clone(this.state.draft)); this.dirty = false; this.invalidatePreview(); this.postInputs = {}; this.tagInputs = {};
-      await this.loadPostPreviews();
+      await Promise.all([this.loadPostPreviews(), this.loadAchievementPreviews()]);
       this.notice = t('forum.rolled_back'); if (this.attrs.onPublished) this.attrs.onPublished();
     });
   }
@@ -120,6 +124,47 @@ export default class ProfileEditor extends Component {
     clearTimeout(this.postPreviewTimer);
     this.postPreviewTimer = setTimeout(() => { if (!this.removed) this.loadPostPreview(module); }, 250);
   }
+  async loadAchievementPreviews() {
+    await Promise.all(this.profile.modules.filter(module => module.type === 'achievements').map(module => this.loadAchievementPreview(module)));
+  }
+  trimAchievementPreviews() {
+    const active = new Set(this.profile.modules.filter(module => module.type === 'achievements').map(module => achievementIds(module.data.achievementIds)?.join(',')));
+    for (const key of this.achievementPreviews.keys()) if (!active.has(key)) this.achievementPreviews.delete(key);
+  }
+  async loadAchievementPreview(module, refresh = false) {
+    if (refresh) this.invalidatePreview();
+    const ids = achievementIds(module.data.achievementIds); if (!ids) return;
+    const key = ids.join(',');
+    if (this.pendingAchievementPreviews.has(key) || (!refresh && this.achievementPreviews.has(key))) return;
+    this.pendingAchievementPreviews.add(key);
+    let data = unavailableAchievements(ids);
+    try {
+      if (refresh && !this.config.integrations?.achievements) {
+        const config = await request('GET', '/config');
+        this.config.integrations = { ...this.config.integrations, achievements: !!config.integrations?.achievements };
+      }
+      if (this.config.integrations?.achievements && !this.state.frozen) {
+        const query = achievementQuery(ids);
+        data = parseAchievementShowcase(await achievementRequest(this.userId, 'achievement-showcase' + (query ? '?' + query : '')), this.userId, ids);
+      }
+    } catch (_) { /* A missing or failed source is unavailable, never a false zero. */ }
+    finally { this.pendingAchievementPreviews.delete(key); }
+    if (this.removed) return;
+    this.achievementPreviews.set(key, data); this.trimAchievementPreviews(); m.redraw();
+  }
+  setAchievementIds(module, value) {
+    if (this.removed || !this.profile.modules.includes(module)) return;
+    const ids = achievementIds(value); if (!ids) return;
+    const previous = module.data.achievementIds, cached = this.achievementPreviews.get(previous.join(','));
+    module.data.achievementIds = ids; this.touch();
+    if (cached?.available && ids.every(id => previous.includes(id))) {
+      this.achievementPreviews.set(ids.join(','), projectAchievements(cached, ids)); this.trimAchievementPreviews();
+    } else this.loadAchievementPreview(module);
+  }
+  chooseAchievements(module) {
+    const ids = module.data.achievementIds, data = this.achievementPreviews.get(ids.join(','));
+    app.modal.show(AchievementSelectModal, { userId: this.userId, selectedIds: ids, items: data?.items || [], onSelect: selected => this.setAchievementIds(module, selected) });
+  }
   async upload(file) {
     if (!file) return;
     await this.run(async () => {
@@ -145,6 +190,7 @@ export default class ProfileEditor extends Component {
     const module = newModule(this.newType, id); module.title = extractText(t('modules.' + this.newType)); this.profile.modules.push(module); this.touch();
     if (['acgn-watching', 'acgn-ratings'].includes(module.type)) this.loadAcgnPreview();
     if (isPostShowcase(module.type)) this.loadPostPreview(module);
+    if (module.type === 'achievements') this.loadAchievementPreview(module);
   }
   field(label, input, help) {
     const name = extractText(label);
@@ -175,7 +221,7 @@ export default class ProfileEditor extends Component {
         <Button type="button" className="Button CustomProfile-sortToggle" onclick={() => { this.reorderMode = !this.reorderMode; }}>{t(this.reorderMode ? 'v2.finish_sorting' : 'v2.sort_showcases')}</Button>
         {this.profile.modules.map((module, index) => this.moduleEditor(module, index))}
         <div className="CustomProfile-inlineActions">
-          <label>{t('forum.add_module')}{choices(this.config.moduleTypes.filter(type => ['about', 'fields', 'gallery', 'posts', 'recent-posts'].includes(type) || (this.config.integrations?.likes && type === 'liked-posts') || (this.config.integrations?.acgn && ['acgn-watching', 'acgn-ratings'].includes(type))), this.newType, value => { this.newType = value; }, 'modules')}</label>
+          <label>{t('forum.add_module')}{choices(this.config.moduleTypes.filter(type => ['about', 'fields', 'gallery', 'posts', 'recent-posts', 'achievements'].includes(type) || (this.config.integrations?.likes && type === 'liked-posts') || (this.config.integrations?.acgn && ['acgn-watching', 'acgn-ratings'].includes(type))), this.newType, value => { this.newType = value; }, 'modules')}</label>
           <Button type="button" className="Button" disabled={this.profile.modules.length >= (this.config.limits?.modules || 12)} onclick={() => this.addModule()}>{t('forum.add')}</Button>
         </div>
         </div>}
@@ -211,6 +257,10 @@ export default class ProfileEditor extends Component {
       if (isPostShowcase(module.type)) {
         const descriptor = postPreviewRequest(module), feed = descriptor && this.postPreviews.get(descriptor.key);
         module.data = { ...module.data, available: feed?.available ?? true, items: (feed?.items || []).slice(0, descriptor?.limit || 6) };
+      }
+      if (module.type === 'achievements') {
+        const ids = achievementIds(module.data.achievementIds) || [], data = this.achievementPreviews.get(ids.join(','));
+        module.data = data || { ...unavailableAchievements(ids), loading: !!this.config.integrations?.achievements && !this.state.frozen };
       }
       return module;
     });
@@ -295,6 +345,7 @@ export default class ProfileEditor extends Component {
       {module.type === 'about' && this.aboutEditor(module)}
       {module.type === 'fields' && this.fieldsEditor(module)}
       {module.type === 'gallery' && this.galleryEditor(module)}
+      {module.type === 'achievements' && this.achievementsEditor(module)}
       {module.type === 'posts' && this.field(t('forum.post_ids'), <input className="FormControl" value={this.postInputs[module.id] ?? module.data.postIds.join(', ')} oninput={event => { this.postInputs[module.id] = event.target.value; module.data.postIds = event.target.value.split(/[,，\s]+/).filter(Boolean).map(Number); this.touch(); this.schedulePostPreview(module); }} />, t('forum.post_ids_help'))}
       {['recent-posts', 'liked-posts'].includes(module.type) && <div>
         {this.field(t('post_feed.limit'), <select className="FormControl" value={module.data.limit} onchange={event => { module.data.limit = Number(event.target.value); this.touch(); }}>{[1, 2, 3, 4, 5, 6].map(value => <option value={value}>{value}</option>)}</select>)}
@@ -311,6 +362,26 @@ export default class ProfileEditor extends Component {
       {isPostShowcase(module.type) && <Button type="button" className="Button" onclick={() => this.loadPostPreview(module, true)}>{t('post_feed.refresh')}</Button>}
       </div>}
     </section>;
+  }
+  achievementsEditor(module) {
+    const ids = module.data.achievementIds, source = this.achievementPreviews.get(ids.join(','));
+    const names = new Map((source?.items || []).map(item => [item.id, item.name]));
+    const move = (index, direction) => { const reordered = ids.slice(); [reordered[index], reordered[index + direction]] = [reordered[index + direction], reordered[index]]; this.setAchievementIds(module, reordered); };
+    return <div className="CustomProfile-achievementEditor">
+      <p className="helpText">{t('achievements.editor_help')}</p>
+      <div className="CustomProfile-inlineActions">
+        <Button type="button" className="Button" disabled={!this.config.integrations?.achievements || this.state.frozen} onclick={() => this.chooseAchievements(module)}>{t('achievements.choose')}</Button>
+        <Button type="button" className="Button" onclick={() => this.loadAchievementPreview(module, true)}>{t('achievements.refresh')}</Button>
+        <span>{t('achievements.selected_count', { count: ids.length })}</span>
+      </div>
+      {!this.config.integrations?.achievements && <p className="Alert Alert--warning">{t('achievements.unavailable')}</p>}
+      <ol className="CustomProfile-achievementSelected">{ids.map((id, index) => <li key={id}>
+        <span>{names.get(id) || t('achievements.unavailable_selection')}</span>
+        <Button type="button" className="Button Button--icon" icon="fas fa-arrow-up" aria-label={t('achievements.move_up')} disabled={index === 0} onclick={() => move(index, -1)} />
+        <Button type="button" className="Button Button--icon" icon="fas fa-arrow-down" aria-label={t('achievements.move_down')} disabled={index === ids.length - 1} onclick={() => move(index, 1)} />
+        <Button type="button" className="Button Button--icon" icon="fas fa-times" aria-label={t('forum.remove')} onclick={() => this.setAchievementIds(module, ids.filter(item => item !== id))} />
+      </li>)}</ol>
+    </div>;
   }
   aboutEditor(module) {
     return <div>

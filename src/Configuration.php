@@ -25,7 +25,7 @@ final class Configuration
         return ['schemaVersion' => 2, 'version' => (int) $row->version,
             'fields' => json_decode($row->fields, true, 32, JSON_THROW_ON_ERROR), 'themes' => Schema::THEMES,
             'frames' => Schema::FRAMES, 'moduleTypes' => $this->modules->names(),
-            'integrations' => ['acgn' => $this->modules->acgnAvailable(), 'likes' => $this->modules->likesAvailable()],
+            'integrations' => ['acgn' => $this->modules->acgnAvailable(), 'likes' => $this->modules->likesAvailable(), 'achievements' => $this->modules->achievementsAvailable()],
             'limits' => ['modules' => Schema::MAX_MODULES, 'images' => Schema::MAX_IMAGES, 'totalImages' => 36, 'bio' => 4000],
             'appearanceDefaults' => Appearance::defaults(), 'layoutDefaults' => Appearance::module()];
     }

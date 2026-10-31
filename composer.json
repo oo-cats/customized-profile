@@ -3,7 +3,7 @@
   "description": "Safe modular user profiles with controlled themes, showcases, private media and moderation",
   "type": "flarum-extension",
   "license": "MIT",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "require": {
     "php": "^8.3",
     "ext-gd": "*",
@@ -17,7 +17,8 @@
     }
   },
   "suggest": {
-    "local/acgn-database": "Enables recent watching and recent ratings profile showcases through its public PHP API."
+    "local/acgn-database": "Enables recent watching and recent ratings profile showcases through its public PHP API.",
+    "local/good-community": "Enables achievement counts and selected achievement showcases through its read-only public contract."
   },
   "extra": {
     "flarum-extension": {

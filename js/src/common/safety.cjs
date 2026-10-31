@@ -40,7 +40,7 @@ function moveModule(modules, index, direction) {
   return result;
 }
 function newModule(type, id) {
-  const defaults = { about: { text: '', format: 'bbcode', tags: [], links: [] }, fields: { values: [] }, gallery: { images: [] }, posts: { postIds: [] }, 'acgn-watching': { limit: 6, withProgress: false }, 'acgn-ratings': { limit: 6, withProgress: false }, 'recent-posts': { limit: 6, scope: 'all' }, 'liked-posts': { limit: 6, scope: 'all' } };
+  const defaults = { about: { text: '', format: 'bbcode', tags: [], links: [] }, fields: { values: [] }, gallery: { images: [] }, posts: { postIds: [] }, achievements: { achievementIds: [] }, 'acgn-watching': { limit: 6, withProgress: false }, 'acgn-ratings': { limit: 6, withProgress: false }, 'recent-posts': { limit: 6, scope: 'all' }, 'liked-posts': { limit: 6, scope: 'all' } };
   if (!Object.prototype.hasOwnProperty.call(defaults, type)) throw new Error('Unsupported module type');
   return { id, type, title: '', visibility: 'public', layout: layoutDefaults(), data: clone(defaults[type]) };
 }
